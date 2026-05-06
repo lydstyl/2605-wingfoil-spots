@@ -96,3 +96,81 @@ export function evaluateWindSafety(
 export function modelLabel(): string {
   return "ICON-D2/EU (DWD, 2-7 km)";
 }
+
+/**
+ * Score de recommandation pour un spot (plus haut = meilleur).
+ * Prend en compte sécurité, vent, rafales, météo.
+ */
+export function scoreWindSpot(
+  windMs: number,
+  gustMs: number,
+  windDir: number,
+  coastHeading: number | null,
+  weatherCode: number
+): number {
+  let score = 0;
+  const kts = msToKnots(windMs);
+  const gustKts = msToKnots(gustMs);
+
+  // Vent : 10-20 kts = idéal
+  if (kts >= 10 && kts <= 20) score += 30;
+  else if (kts >= 8 && kts < 10) score += 15;
+  else if (kts > 20 && kts <= 25) score += 5;
+  else if (kts > 25 && kts <= 30) score -= 5;
+  else if (kts > 30) score -= 20;
+  else score -= 10; // < 8 kts trop faible
+
+  // Rafales
+  if (gustKts <= 35) score += 10;
+  else score -= 25;
+
+  // Sécurité côte
+  if (coastHeading === null) {
+    score += 15; // eau intérieure, pas de danger
+  } else {
+    const distToOnshore = angularDist(windDir, coastHeading);
+    const distToOffshore = angularDist(windDir, (coastHeading + 180) % 360);
+    if (distToOnshore <= 60) score += 40;         // onshore pur
+    else if (distToOnshore <= 90) score += 25;     // side-onshore
+    else if (distToOffshore > 90) score += 10;     // side
+    else score -= 50;                               // offshore = danger
+  }
+
+  // Météo : dégagé = bonus
+  if (weatherCode <= 3) score += 5;
+  else if (weatherCode >= 80) score -= 5; // orage
+
+  return score;
+}
+
+/** Résumé pour le tableau de classement */
+export interface SpotSummary {
+  name: string;
+  windKts: number;
+  gustKts: number;
+  direction: string;
+  safety: { label: string; color: string; icon: string };
+  cond: { label: string; color: string; emoji: string };
+  weather: string;
+  score: number;
+}
+
+export function buildSpotSummary(
+  name: string,
+  windMs: number,
+  gustMs: number,
+  windDir: number,
+  coastHeading: number | null,
+  weatherCode: number
+): SpotSummary {
+  return {
+    name,
+    windKts: msToKnots(windMs),
+    gustKts: msToKnots(gustMs),
+    direction: windDegToCardinal(windDir) + " " + windDegToArrow(windDir),
+    safety: evaluateWindSafety(windDir, coastHeading),
+    cond: evaluateConditions(msToKnots(windMs), msToKnots(gustMs)),
+    weather: weatherCode === 0 ? "☀️" : weatherCode <= 3 ? "🌤️" : weatherCode <= 48 ? "🌫️" : weatherCode <= 67 ? "🌧️" : weatherCode <= 77 ? "❄️" : "⛈️",
+    score: scoreWindSpot(windMs, gustMs, windDir, coastHeading, weatherCode),
+  };
+}

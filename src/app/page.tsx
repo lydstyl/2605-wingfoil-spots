@@ -1,5 +1,7 @@
 import { getAllSpotsWind } from "@/lib/spots";
 import { SpotCard } from "@/components/spot-card";
+import { SpotSummaryTable } from "@/components/spot-summary";
+import { buildSpotSummary, type SpotSummary } from "@/lib/wind-utils";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 900; // 15 min
@@ -7,9 +9,22 @@ export const revalidate = 900; // 15 min
 export default async function HomePage() {
   let spotsWind;
   let error: string | null = null;
+  let summaries: SpotSummary[] = [];
 
   try {
     spotsWind = await getAllSpotsWind();
+    summaries = spotsWind
+      .map(({ spot, wind }) =>
+        buildSpotSummary(
+          spot.name,
+          wind.current.windSpeed10m,
+          wind.current.windGusts10m,
+          wind.current.windDirection10m,
+          spot.coastHeading,
+          wind.current.weatherCode
+        )
+      )
+      .sort((a, b) => b.score - a.score);
   } catch (err) {
     error = err instanceof Error ? err.message : "Erreur inconnue";
   }
@@ -25,7 +40,7 @@ export default async function HomePage() {
           Compare les conditions de vent pour tes spots favoris
         </p>
         <p className="text-[10px] text-muted-foreground/50 mt-1">
-          Données Open-Meteo · Vent à 10m · MAJ toutes les 15 min
+          Modèle ICON-D2/EU (DWD) · Vent à 10m · MAJ toutes les 15 min
         </p>
       </header>
 
@@ -34,6 +49,9 @@ export default async function HomePage() {
           Erreur lors du chargement des données : {error}
         </div>
       )}
+
+      {/* Classement résumé */}
+      {summaries.length > 0 && <SpotSummaryTable spots={summaries} />}
 
       {/* Spots grid */}
       {spotsWind && spotsWind.length > 0 ? (
