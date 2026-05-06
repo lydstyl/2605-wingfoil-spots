@@ -64,6 +64,7 @@ export async function fetchWindForecast(
     wind_speed_unit: "ms",
     timezone: "Europe/Paris",
     forecast_days: "3",
+    models: "icon_seamless",
   });
 
   const res = await fetch(`${OPEN_METEO_BASE}?${params}`, {
