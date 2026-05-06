@@ -108,7 +108,7 @@ export function extractAfternoonWind(
   const afternoon = hourly.filter((h) => {
     if (!h.hour.startsWith(dateStr)) return false;
     const hour = parseInt(h.hour.slice(11, 13), 10);
-    return hour >= 14 && hour <= 16;
+    return hour >= 14 && hour <= 17;
   });
 
   if (afternoon.length === 0) return null;

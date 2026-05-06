@@ -22,7 +22,7 @@ export function SpotSummaryTable({ spots }: Props) {
     <div className="rounded-lg border border-border/50 overflow-hidden">
       <div className="px-4 py-2 bg-muted/30 border-b border-border/30">
         <h2 className="text-sm font-semibold text-foreground">
-          📊 Classement — {spots.length} spots · vent 14-16h
+          📊 Classement — {spots.length} spots · vent 14-18h
         </h2>
       </div>
       {/* Desktop header */}
