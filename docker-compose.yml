@@ -1,0 +1,31 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3050:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://wingfoil:wingfoil@db:5432/wingfoil
+    restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: wingfoil
+      POSTGRES_USER: wingfoil
+      POSTGRES_PASSWORD: wingfoil
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5438:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wingfoil"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  pgdata:
