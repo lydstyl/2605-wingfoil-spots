@@ -45,6 +45,7 @@ export default async function HomePage() {
               description={spot.description}
               lat={spot.latitude}
               lon={spot.longitude}
+              coastHeading={spot.coastHeading}
               wind={wind}
             />
           ))}

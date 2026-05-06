@@ -56,3 +56,43 @@ export function windColorBg(ms: number): string {
   if (ms < 14) return "bg-orange-500/20";
   return "bg-red-500/20";
 }
+
+/** Distance angulaire minimale entre deux caps (0-360) */
+function angularDist(a: number, b: number): number {
+  const d = Math.abs(a - b) % 360;
+  return d > 180 ? 360 - d : d;
+}
+
+/**
+ * Évalue la sécurité du vent par rapport à la côte.
+ * @param windDir - direction D'OÙ vient le vent (degrés, convention météo)
+ * @param coastHeading - direction vers la mer (null = plan d'eau intérieur)
+ */
+export function evaluateWindSafety(
+  windDir: number,
+  coastHeading: number | null
+): { label: string; color: string; icon: string; detail: string } {
+  if (coastHeading === null) {
+    return { label: "Eau intérieure", color: "text-blue-300", icon: "🏞️", detail: "Pas de danger offshore" };
+  }
+
+  const distToOnshore = angularDist(windDir, coastHeading);
+  const distToOffshore = angularDist(windDir, (coastHeading + 180) % 360);
+
+  if (distToOnshore <= 60) {
+    return { label: "Onshore ✓", color: "text-green-400", icon: "🏄", detail: "Le vent pousse vers la plage — safe" };
+  }
+  if (distToOnshore <= 90) {
+    return { label: "Side-onshore ✓", color: "text-green-300", icon: "🏄", detail: "Vent légèrement de travers — ok" };
+  }
+  if (distToOffshore <= 90) {
+    return { label: "Offshore ⚠️", color: "text-red-400", icon: "🚫", detail: "Le vent pousse vers le large — DANGER" };
+  }
+  // Side
+  return { label: "Side ≈", color: "text-yellow-300", icon: "🤙", detail: "Vent parallèle à la côte — ça va" };
+}
+
+/** Nom du modèle météo pour affichage */
+export function modelLabel(): string {
+  return "ICON-D2/EU (DWD, 2-7 km)";
+}

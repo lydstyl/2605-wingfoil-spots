@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WindCompass } from "./wind-compass";
-import { msToKnots, msToKmh, evaluateConditions } from "@/lib/wind-utils";
+import { msToKnots, msToKmh, evaluateConditions, evaluateWindSafety, modelLabel } from "@/lib/wind-utils";
 import { weatherCodeToEmoji } from "@/lib/open-meteo";
 import type { SpotWindForecast } from "@/lib/open-meteo";
 import { useState } from "react";
@@ -13,15 +13,17 @@ interface SpotCardProps {
   description: string | null;
   lat: number;
   lon: number;
+  coastHeading: number | null;
   wind: SpotWindForecast;
 }
 
-export function SpotCard({ name, description, lat, lon, wind }: SpotCardProps) {
+export function SpotCard({ name, description, lat, lon, coastHeading, wind }: SpotCardProps) {
   const [showWindy, setShowWindy] = useState(false);
   const { current, hourly, daily } = wind;
   const windKts = msToKnots(current.windSpeed10m);
   const gustKts = msToKnots(current.windGusts10m);
   const cond = evaluateConditions(windKts, gustKts);
+  const safety = evaluateWindSafety(current.windDirection10m, coastHeading);
 
   // Prochaines 6h
   const next6h = hourly.slice(0, 6);
@@ -30,7 +32,7 @@ export function SpotCard({ name, description, lat, lon, wind }: SpotCardProps) {
     <Card className="overflow-hidden border-border/50 hover:border-primary/30 transition-colors">
       {/* Header */}
       <div className="p-4 bg-card/50 border-b border-border/30">
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between mb-2">
           <div>
             <h2 className="text-lg font-bold text-foreground">{name}</h2>
             {description && (
@@ -40,12 +42,16 @@ export function SpotCard({ name, description, lat, lon, wind }: SpotCardProps) {
               {lat.toFixed(3)}, {lon.toFixed(3)}
             </p>
           </div>
-          <div className="text-right">
+          <div className="text-right space-y-1">
             <div className={`text-sm font-bold ${cond.color}`}>
               {cond.emoji} {cond.label}
             </div>
-            <div className="text-xs text-muted-foreground mt-0.5">
-              {weatherCodeToEmoji(current.weatherCode)} MAJ
+            {/* Wind safety */}
+            <div className={`text-xs font-semibold ${safety.color}`}>
+              {safety.icon} {safety.label}
+            </div>
+            <div className="text-[10px] text-muted-foreground" title={safety.detail}>
+              {weatherCodeToEmoji(current.weatherCode)} · {modelLabel()}
             </div>
           </div>
         </div>
