@@ -146,6 +146,7 @@ export function scoreWindSpot(
 /** Résumé pour le tableau de classement */
 export interface SpotSummary {
   name: string;
+  slug: string;
   windKts: number;
   gustKts: number;
   direction: string;
@@ -157,6 +158,7 @@ export interface SpotSummary {
 
 export function buildSpotSummary(
   name: string,
+  slug: string,
   windMs: number,
   gustMs: number,
   windDir: number,
@@ -165,6 +167,7 @@ export function buildSpotSummary(
 ): SpotSummary {
   return {
     name,
+    slug,
     windKts: msToKnots(windMs),
     gustKts: msToKnots(gustMs),
     direction: windDegToCardinal(windDir) + " " + windDegToArrow(windDir),

@@ -17,6 +17,7 @@ export default async function HomePage() {
       .map(({ spot, wind }) =>
         buildSpotSummary(
           spot.name,
+          spot.slug,
           wind.current.windSpeed10m,
           wind.current.windGusts10m,
           wind.current.windDirection10m,
@@ -60,6 +61,7 @@ export default async function HomePage() {
             <SpotCard
               key={spot.id}
               name={spot.name}
+              slug={spot.slug}
               description={spot.description}
               lat={spot.latitude}
               lon={spot.longitude}

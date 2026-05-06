@@ -27,9 +27,10 @@ export function SpotSummaryTable({ spots }: Props) {
       </div>
       <div className="divide-y divide-border/20">
         {spots.map((s, i) => (
-          <div
-            key={s.name}
-            className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/10 transition-colors"
+          <a
+            key={s.slug}
+            href={`#spot-${s.slug}`}
+            className="flex items-center gap-3 px-4 py-2.5 hover:bg-muted/20 transition-colors cursor-pointer"
           >
             {/* Rang */}
             <div className="text-xs font-bold text-muted-foreground w-5 text-right tabular-nums">
@@ -38,7 +39,9 @@ export function SpotSummaryTable({ spots }: Props) {
 
             {/* Nom */}
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-foreground truncate">{s.name}</div>
+              <div className="text-sm font-medium text-foreground truncate hover:text-primary transition-colors">
+                {s.name}
+              </div>
               <div className="text-[10px] text-muted-foreground">
                 {s.weather} {s.direction}
               </div>
@@ -74,7 +77,7 @@ export function SpotSummaryTable({ spots }: Props) {
                 />
               </div>
             </div>
-          </div>
+          </a>
         ))}
       </div>
     </div>

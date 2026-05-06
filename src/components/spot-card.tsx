@@ -10,6 +10,7 @@ import { useState } from "react";
 
 interface SpotCardProps {
   name: string;
+  slug: string;
   description: string | null;
   lat: number;
   lon: number;
@@ -17,7 +18,7 @@ interface SpotCardProps {
   wind: SpotWindForecast;
 }
 
-export function SpotCard({ name, description, lat, lon, coastHeading, wind }: SpotCardProps) {
+export function SpotCard({ name, slug, description, lat, lon, coastHeading, wind }: SpotCardProps) {
   const [showWindy, setShowWindy] = useState(false);
   const { current, hourly, daily } = wind;
   const windKts = msToKnots(current.windSpeed10m);
@@ -29,7 +30,7 @@ export function SpotCard({ name, description, lat, lon, coastHeading, wind }: Sp
   const next6h = hourly.slice(0, 6);
 
   return (
-    <Card className="overflow-hidden border-border/50 hover:border-primary/30 transition-colors">
+    <Card id={`spot-${slug}`} className="overflow-hidden border-border/50 hover:border-primary/30 transition-colors scroll-mt-4">
       {/* Header */}
       <div className="p-4 bg-card/50 border-b border-border/30">
         <div className="flex items-start justify-between mb-2">
