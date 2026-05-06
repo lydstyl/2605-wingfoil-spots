@@ -22,8 +22,17 @@ export function SpotSummaryTable({ spots }: Props) {
     <div className="rounded-lg border border-border/50 overflow-hidden">
       <div className="px-4 py-2 bg-muted/30 border-b border-border/30">
         <h2 className="text-sm font-semibold text-foreground">
-          📊 Classement — {spots.length} spots
+          📊 Classement — {spots.length} spots · vent 14-16h
         </h2>
+      </div>
+      {/* Desktop header */}
+      <div className="hidden md:flex items-center gap-3 px-4 py-1.5 text-[10px] uppercase tracking-wider text-muted-foreground/60 border-b border-border/20">
+        <div className="w-5" />
+        <div className="flex-1">Spot</div>
+        <div className="w-[72px] text-right">Auj. PM</div>
+        <div className="w-[72px] text-right">Dem. PM</div>
+        <div className="w-[100px] text-right">Sécurité</div>
+        <div className="w-20" />
       </div>
       <div className="divide-y divide-border/20">
         {spots.map((s, i) => (
@@ -47,19 +56,30 @@ export function SpotSummaryTable({ spots }: Props) {
               </div>
             </div>
 
-            {/* Vent */}
-            <div className="text-right min-w-[80px]">
+            {/* Aujourd'hui PM */}
+            <div className="text-right min-w-[72px]">
               <div className="text-sm font-bold tabular-nums text-foreground">
-                {s.windKts}
+                {s.windPmKts}
                 <span className="text-[10px] font-normal text-muted-foreground"> kts</span>
               </div>
               <div className="text-[10px] text-muted-foreground">
-                raf. {s.gustKts} kts
+                raf. {s.gustPmKts}
+              </div>
+            </div>
+
+            {/* Demain PM */}
+            <div className="text-right min-w-[72px]">
+              <div className="text-sm tabular-nums text-foreground">
+                {s.windTomorrowPmKts}
+                <span className="text-[10px] font-normal text-muted-foreground"> kts</span>
+              </div>
+              <div className="text-[10px] text-muted-foreground">
+                raf. {s.gustTomorrowPmKts}
               </div>
             </div>
 
             {/* Sécurité */}
-            <div className={`text-xs font-semibold ${s.safety.color} min-w-[90px] text-right`}>
+            <div className={`text-xs font-semibold ${s.safety.color} min-w-[100px] text-right`}>
               {s.safety.icon} {s.safety.label}
             </div>
 

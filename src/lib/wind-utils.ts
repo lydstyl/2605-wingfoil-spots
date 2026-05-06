@@ -65,8 +65,6 @@ function angularDist(a: number, b: number): number {
 
 /**
  * Évalue la sécurité du vent par rapport à la côte.
- * @param windDir - direction D'OÙ vient le vent (degrés, convention météo)
- * @param coastHeading - direction vers la mer (null = plan d'eau intérieur)
  */
 export function evaluateWindSafety(
   windDir: number,
@@ -88,7 +86,6 @@ export function evaluateWindSafety(
   if (distToOffshore <= 90) {
     return { label: "Offshore ⚠️", color: "text-red-400", icon: "🚫", detail: "Le vent pousse vers le large — DANGER" };
   }
-  // Side
   return { label: "Side ≈", color: "text-yellow-300", icon: "🤙", detail: "Vent parallèle à la côte — ça va" };
 }
 
@@ -98,8 +95,34 @@ export function modelLabel(): string {
 }
 
 /**
+ * Extrait la moyenne du vent pour un après-midi donné (14h-17h heure locale).
+ */
+export function extractAfternoonWind(
+  hourly: { hour: string; windSpeed10m: number; windGusts10m: number; windDirection10m: number }[],
+  dayOffset: number
+): { windMs: number; gustMs: number; windDir: number } | null {
+  const targetDate = new Date();
+  targetDate.setDate(targetDate.getDate() + dayOffset);
+  const dateStr = targetDate.toISOString().slice(0, 10);
+
+  const afternoon = hourly.filter((h) => {
+    if (!h.hour.startsWith(dateStr)) return false;
+    const hour = parseInt(h.hour.slice(11, 13), 10);
+    return hour >= 14 && hour <= 16;
+  });
+
+  if (afternoon.length === 0) return null;
+
+  const avg = (arr: number[]) => arr.reduce((a, b) => a + b, 0) / arr.length;
+  return {
+    windMs: Math.round(avg(afternoon.map((h) => h.windSpeed10m)) * 10) / 10,
+    gustMs: Math.round(Math.max(...afternoon.map((h) => h.windGusts10m)) * 10) / 10,
+    windDir: Math.round(avg(afternoon.map((h) => h.windDirection10m))),
+  };
+}
+
+/**
  * Score de recommandation pour un spot (plus haut = meilleur).
- * Prend en compte sécurité, vent, rafales, météo.
  */
 export function scoreWindSpot(
   windMs: number,
@@ -112,33 +135,29 @@ export function scoreWindSpot(
   const kts = msToKnots(windMs);
   const gustKts = msToKnots(gustMs);
 
-  // Vent : 10-20 kts = idéal
   if (kts >= 10 && kts <= 20) score += 30;
   else if (kts >= 8 && kts < 10) score += 15;
   else if (kts > 20 && kts <= 25) score += 5;
   else if (kts > 25 && kts <= 30) score -= 5;
   else if (kts > 30) score -= 20;
-  else score -= 10; // < 8 kts trop faible
+  else score -= 10;
 
-  // Rafales
   if (gustKts <= 35) score += 10;
   else score -= 25;
 
-  // Sécurité côte
   if (coastHeading === null) {
-    score += 15; // eau intérieure, pas de danger
+    score += 15;
   } else {
     const distToOnshore = angularDist(windDir, coastHeading);
     const distToOffshore = angularDist(windDir, (coastHeading + 180) % 360);
-    if (distToOnshore <= 60) score += 40;         // onshore pur
-    else if (distToOnshore <= 90) score += 25;     // side-onshore
-    else if (distToOffshore > 90) score += 10;     // side
-    else score -= 50;                               // offshore = danger
+    if (distToOnshore <= 60) score += 40;
+    else if (distToOnshore <= 90) score += 25;
+    else if (distToOffshore > 90) score += 10;
+    else score -= 50;
   }
 
-  // Météo : dégagé = bonus
   if (weatherCode <= 3) score += 5;
-  else if (weatherCode >= 80) score -= 5; // orage
+  else if (weatherCode >= 80) score -= 5;
 
   return score;
 }
@@ -147,11 +166,12 @@ export function scoreWindSpot(
 export interface SpotSummary {
   name: string;
   slug: string;
-  windKts: number;
-  gustKts: number;
+  windPmKts: number;
+  gustPmKts: number;
+  windTomorrowPmKts: number;
+  gustTomorrowPmKts: number;
   direction: string;
   safety: { label: string; color: string; icon: string };
-  cond: { label: string; color: string; emoji: string };
   weather: string;
   score: number;
 }
@@ -159,21 +179,31 @@ export interface SpotSummary {
 export function buildSpotSummary(
   name: string,
   slug: string,
-  windMs: number,
-  gustMs: number,
-  windDir: number,
   coastHeading: number | null,
+  hourly: { hour: string; windSpeed10m: number; windGusts10m: number; windDirection10m: number }[],
   weatherCode: number
 ): SpotSummary {
+  const pm = extractAfternoonWind(hourly, 0);
+  const tomorrowPm = extractAfternoonWind(hourly, 1);
+
+  const windMs = pm?.windMs ?? (hourly[0]?.windSpeed10m ?? 0);
+  const gustMs = pm?.gustMs ?? (hourly[0]?.windGusts10m ?? 0);
+  const windDir = pm?.windDir ?? (hourly[0]?.windDirection10m ?? 0);
+
+  const score = scoreWindSpot(windMs, gustMs, windDir, coastHeading, weatherCode);
+
+  const weatherIcon = weatherCode === 0 ? "☀️" : weatherCode <= 3 ? "🌤️" : weatherCode <= 48 ? "🌫️" : weatherCode <= 67 ? "🌧️" : weatherCode <= 77 ? "❄️" : "⛈️";
+
   return {
     name,
     slug,
-    windKts: msToKnots(windMs),
-    gustKts: msToKnots(gustMs),
+    windPmKts: pm ? msToKnots(pm.windMs) : 0,
+    gustPmKts: pm ? msToKnots(pm.gustMs) : 0,
+    windTomorrowPmKts: tomorrowPm ? msToKnots(tomorrowPm.windMs) : 0,
+    gustTomorrowPmKts: tomorrowPm ? msToKnots(tomorrowPm.gustMs) : 0,
     direction: windDegToCardinal(windDir) + " " + windDegToArrow(windDir),
     safety: evaluateWindSafety(windDir, coastHeading),
-    cond: evaluateConditions(msToKnots(windMs), msToKnots(gustMs)),
-    weather: weatherCode === 0 ? "☀️" : weatherCode <= 3 ? "🌤️" : weatherCode <= 48 ? "🌫️" : weatherCode <= 67 ? "🌧️" : weatherCode <= 77 ? "❄️" : "⛈️",
-    score: scoreWindSpot(windMs, gustMs, windDir, coastHeading, weatherCode),
+    weather: weatherIcon,
+    score,
   };
 }
